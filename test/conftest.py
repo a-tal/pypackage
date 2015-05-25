@@ -188,18 +188,17 @@ def move_home_pypackage(request, scope="module", autouse=True):
         shutil.move(site_file, "{}{}".format(site_file, "~" * tildes))
     except Exception as error:
         if error.errno == 2:
-            pass  # original file didn't exist
+            request.addfinalizer(nuke_home_pypackage)
         else:
             raise
     else:
-        print('adding finalizer')
         request.addfinalizer(move_home_pypackage_back)
+    return site_file
 
 
 def move_home_pypackage_back():
     """Returns your $HOME/.pypackage file to it's rightful place."""
 
-    print("finalizer called")
     backups = defaultdict(list)
     home = os.path.expanduser("~")
     for file_name in os.listdir(home):
@@ -211,3 +210,12 @@ def move_home_pypackage_back():
         max(backups[max(backups)]),  # the longest of the lastest created
         os.path.join(home, ".pypackage"),
     )
+
+
+def nuke_home_pypackage():
+    """Removes the $HOME/.pypackage file after creating it."""
+
+    try:
+        os.remove(os.path.join(os.path.expanduser("~"), ".pypackage"))
+    except:
+        pass
